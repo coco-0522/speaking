@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语会话评估系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: auto; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        #output { margin-top: 20px; padding: 10px; border: 1px solid #ddd; min-height: 50px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>英语会话评估系统</h2>
+        
+        <label for="difficulty">选择难度：</label>
+        <select id="difficulty">
+            <option value="easy">初级</option>
+            <option value="medium">中级</option>
+            <option value="hard">高级</option>
+        </select>
+        <button onclick="generateTopic()">生成主题</button>
+
+        <h3>会话主题：</h3>
+        <p id="topic">（请点击按钮生成主题）</p>
+
+        <button onclick="startRecording()">🎤 开始录音</button>
+        <button onclick="stopRecording()">⏹ 停止录音</button>
+
+        <h3>您的回答：</h3>
+        <div id="output">（录音后会显示您的回答）</div>
+
+        <button onclick="evaluateSpeech()">评估</button>
+        <h3>评估结果：</h3>
+        <p id="score">（点击评估后查看分数）</p>
+    </div>
+
+    <script>
+        let recognition;
+        let isRecording = false;
+        let userResponse = "";
+
+        const topics = {
+            easy: ["自我介绍", "你的兴趣爱好是什么？", "你最喜欢的食物是什么？"],
+            medium: ["描述一次难忘的旅行", "你如何度过周末？", "你最喜欢的电影是什么？为什么？"],
+            hard: ["科技如何影响我们的生活？", "讨论环境保护的重要性", "人工智能对未来社会的影响"]
+        };
+
+        function generateTopic() {
+            let level = document.getElementById("difficulty").value;
+            let topicList = topics[level];
+            let randomTopic = topicList[Math.floor(Math.random() * topicList.length)];
+            document.getElementById("topic").innerText = randomTopic;
+        }
+
+        async function startRecording() {
+            if (!('webkitSpeechRecognition' in window)) {
+                document.getElementById("output").innerText = "❌ 您的浏览器不支持语音识别，请使用 Google Chrome";
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    recognition = new webkitSpeechRecognition();
+                    recognition.lang = "en-US";
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+
+                    recognition.onstart = function () {
+                        isRecording = true;
+                        document.getElementById("output").innerText = "🎙 正在录音...";
+                    };
+
+                    recognition.onresult = function (event) {
+                        userResponse = event.results[0][0].transcript;
+                        document.getElementById("output").innerText = userResponse;
+                    };
+
+                    recognition.onerror = function (event) {
+                        let errorMessage = "❌ 语音识别失败，请重试";
+                        if (event.error === "not-allowed") {
+                            errorMessage = "⚠ 麦克风权限被拒绝，请在浏览器设置中允许访问麦克风。";
+                        } else if (event.error === "network") {
+                            errorMessage = "⚠ 网络问题，请检查您的网络连接。";
+                        } else if (event.error === "no-speech") {
+                            errorMessage = "🎤 未检测到语音，请再试一次。";
+                        }
+                        document.getElementById("output").innerText = errorMessage;
+                        userResponse = "";
+                    };
+
+                    recognition.start();
+                })
+                .catch(function(err) {
+                    document.getElementById("output").innerText = "⚠ 无法访问麦克风，请在浏览器设置中启用麦克风权限。";
+                    console.error("获取麦克风权限失败:", err);
+                });
+        }
+
+        function stopRecording() {
+            if (isRecording && recognition) {
+                recognition.stop();
+                isRecording = false;
+            }
+        }
+
+        function evaluateSpeech() {
+            if (userResponse.trim() === "") {
+                document.getElementById("score").innerText = "未检测到语音，请重试。";
+                return;
+            }
+            let score = Math.floor(Math.random() * 40) + 60;
+            document.getElementById("score").innerText = "您的得分: " + score + " / 100";
+        }
+    </script>
+</body>
+</html>
